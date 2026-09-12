@@ -18,9 +18,11 @@ public sealed class MainWindow : Window
     readonly Image cover = new() { Width = 120, Height = 120, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Center };
     readonly TextBlock title = new() { FontSize = 13, FontWeight = FontWeights.SemiBold, TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new(16, 8, 16, 0) };
     readonly TextBlock artist = new() { FontSize = 12, TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new(16, 3, 16, 0) };
-    readonly Button previous = Control("\uE892", UiText.Choose("Previous track", "이전 곡"));
-    readonly Button toggle = Control("\uE768", UiText.Choose("Play", "재생"));
-    readonly Button next = Control("\uE893", UiText.Choose("Next track", "다음 곡"));
+    readonly Button open = Control("\uE8A7", "Open YouTube Music");
+    readonly Button previous = Control("\uE892", "Previous track");
+    readonly Button toggle = Control("\uE768", "Play");
+    readonly Button next = Control("\uE893", "Next track");
+    readonly Button like = Control("\uE8E1", "Like");
     Playback state;
     bool busy, closed;
     string? imageData;
@@ -38,11 +40,13 @@ public sealed class MainWindow : Window
         var body = new StackPanel { Margin = new(0, 42, 0, 0), VerticalAlignment = VerticalAlignment.Top };
         body.Children.Add(cover); body.Children.Add(title); body.Children.Add(artist);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new(0, 9, 0, 0) };
-        buttons.Children.Add(previous); buttons.Children.Add(toggle); buttons.Children.Add(next); body.Children.Add(buttons);
+        buttons.Children.Add(open); buttons.Children.Add(previous); buttons.Children.Add(toggle); buttons.Children.Add(next); buttons.Children.Add(like); body.Children.Add(buttons);
         root.Children.Add(body); Content = root;
+        open.Click += async (_, _) => await ExecuteAsync("open");
         previous.Click += async (_, _) => await ExecuteAsync("previous");
         toggle.Click += async (_, _) => await ExecuteAsync(state.Playing ? "pause" : "play");
         next.Click += async (_, _) => await ExecuteAsync("next");
+        like.Click += async (_, _) => await ExecuteAsync(state.Liked ? "unlike" : "like");
         Loaded += async (_, _) => { if (!sample) { timer.Start(); await RefreshAsync(); } };
         timer.Tick += async (_, _) => await RefreshAsync();
         SystemEvents.UserPreferenceChanged += ThemeChanged;
@@ -74,7 +78,7 @@ public sealed class MainWindow : Window
         Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(dark ? "#F5F5F7" : "#252529"));
         artist.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(dark ? "#B7B7BD" : "#6B6B73"));
         if (SystemParameters.HighContrast && forceDark is null) { root.Background = SystemColors.WindowBrush; Foreground = artist.Foreground = SystemColors.WindowTextBrush; }
-        previous.Foreground = toggle.Foreground = next.Foreground = Foreground;
+        open.Foreground = previous.Foreground = toggle.Foreground = next.Foreground = like.Foreground = Foreground;
     }
     void Paint()
     {
@@ -86,8 +90,13 @@ public sealed class MainWindow : Window
         }
         AutomationProperties.SetName(cover, state.Title);
         previous.IsEnabled = !busy && state.CanPrevious; toggle.IsEnabled = !busy && state.CanToggle; next.IsEnabled = !busy && state.CanNext;
+        open.IsEnabled = !busy; like.IsEnabled = !busy && state.CanLike;
+        like.Content = state.Liked ? "\uF3BF" : "\uE8E1";
+        var likeLabel = !state.CanLike ? "Open YouTube Music to use Like"
+            : state.Liked ? "Unlike" : "Like";
+        like.ToolTip = likeLabel; AutomationProperties.SetName(like, likeLabel);
         toggle.Content = state.Playing ? "\uE769" : "\uE768";
-        var label = state.Playing ? UiText.Choose("Pause", "일시정지") : UiText.Choose("Play", "재생");
+        var label = state.Playing ? "Pause" : "Play";
         toggle.ToolTip = label; AutomationProperties.SetName(toggle, label);
     }
     async Task RefreshAsync()
@@ -100,7 +109,11 @@ public sealed class MainWindow : Window
     async Task ExecuteAsync(string verb)
     {
         if (busy || closed) return;
-        if (sample) { if (verb is "play" or "pause") state = state with { Playing = verb == "play" }; Paint(); return; }
+        if (sample) {
+            if (verb is "play" or "pause") state = state with { Playing = verb == "play" };
+            if (verb is "like" or "unlike") state = state with { Liked = verb == "like" };
+            Paint(); return;
+        }
         busy = true; Paint();
         try { state = await controller.ExecuteAsync(verb, state.SessionId); }
         finally { busy = false; if (!closed) Paint(); }

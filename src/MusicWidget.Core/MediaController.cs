@@ -14,6 +14,7 @@ public sealed class MediaController
     GlobalSystemMediaTransportControlsSession? selected;
     string? artworkKey;
     string? artwork;
+    string mediaTitle = "", mediaArtist = "";
     public Playback State { get; private set; } = Playback.Empty();
 
     public async Task<Playback> RefreshAsync()
@@ -43,21 +44,23 @@ public sealed class MediaController
             selected = candidate.Session;
             var info = selected.GetPlaybackInfo();
             var mediaProps = candidate.Media;
+            mediaTitle = mediaProps.Title; mediaArtist = mediaProps.Artist;
             var key = $"{selected.SourceAppUserModelId}\n{mediaProps.Title}\n{mediaProps.Artist}\n{mediaProps.AlbumTitle}";
             if (key != artworkKey || artwork is null) {
                 artwork = await ReadArtworkAsync(mediaProps.Thumbnail);
                 artworkKey = key;
             }
             var controls = info.Controls;
+            var like = await YouTubeApp.ReadLikeAsync(selected.SourceAppUserModelId, mediaProps.Title, mediaProps.Artist);
             return State = new(
-                string.IsNullOrWhiteSpace(mediaProps.Title) ? UiText.Choose("Unknown title", "제목 없음") : mediaProps.Title,
+                string.IsNullOrWhiteSpace(mediaProps.Title) ? "Unknown title" : mediaProps.Title,
                 string.IsNullOrWhiteSpace(mediaProps.Artist) ? "YouTube Music" : mediaProps.Artist,
                 artwork, true, candidate.Playing, controls.IsPreviousEnabled,
                 (candidate.Playing ? controls.IsPauseEnabled : controls.IsPlayEnabled) || controls.IsPlayPauseToggleEnabled,
-                controls.IsNextEnabled, Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key))));
+                controls.IsNextEnabled, Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key))), CanLike: like.Available, Liked: like.Liked);
         } catch (Exception e) when (e is COMException or UnauthorizedAccessException or InvalidOperationException or TimeoutException) {
             manager = null; selected = null; artwork = null; artworkKey = null;
-            return State = Playback.Empty(UiText.Choose("Reopen YouTube Music to reconnect", "YouTube Music을 다시 열어 연결하세요"));
+            return State = Playback.Empty("Reopen YouTube Music to reconnect");
         }
     }
 
@@ -65,6 +68,10 @@ public sealed class MediaController
     {
         await gate.WaitAsync();
         try {
+            if (verb == "open") {
+                var opened = await YouTubeApp.OpenAsync(selected?.SourceAppUserModelId, State.Connected ? State.Title : null);
+                return State = State with { Message = opened ? null : "Could not open YouTube Music. Try its taskbar icon." };
+            }
             await ReadAsync();
             if (selected is null || expectedSession is null || State.SessionId != expectedSession) return State;
             var controls = selected.GetPlaybackInfo().Controls;
@@ -73,14 +80,17 @@ public sealed class MediaController
                 "next" when State.CanNext => await selected.TrySkipNextAsync(),
                 "pause" when State.CanToggle && State.Playing => controls.IsPauseEnabled ? await selected.TryPauseAsync() : await selected.TryTogglePlayPauseAsync(),
                 "play" when State.CanToggle && !State.Playing => controls.IsPlayEnabled ? await selected.TryPlayAsync() : await selected.TryTogglePlayPauseAsync(),
+                "like" or "unlike" => await YouTubeApp.SetLikedAsync(selected.SourceAppUserModelId, mediaTitle, mediaArtist, verb == "like"),
                 _ => null
             };
             await ReadAsync();
-            if (result == false) State = State with { Message = UiText.Choose("Control unavailable. Try in YouTube Music.", "YouTube Music에서 직접 재생해 주세요") };
+            if (result == false) State = State with { Message = verb is "like" or "unlike"
+                ? "Open YouTube Music to use its Like button."
+                : "Control unavailable. Try in YouTube Music." };
             return State;
         } catch (Exception e) when (e is COMException or UnauthorizedAccessException or InvalidOperationException) {
             selected = null;
-            return State = Playback.Empty(UiText.Choose("Reopen YouTube Music to reconnect", "YouTube Music을 다시 열어 연결하세요"));
+            return State = Playback.Empty("Reopen YouTube Music to reconnect");
         } finally { gate.Release(); }
     }
 

@@ -13,7 +13,13 @@ foreach ($name in @('Desktop', 'Provider')) {
 }
 & (Join-Path $PSScriptRoot 'New-Assets.ps1') -Destination (Join-Path $stage 'Assets')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'packaging\AppxManifest.xml') -Destination $stage
-Copy-Item -LiteralPath (Join-Path $projectRoot 'packaging\Strings') -Destination $stage -Recurse -Force
+# Remove the former Korean resource from incremental build output as well.
+$legacyResource = Join-Path $stage 'Strings\ko-KR\Resources.resw'
+if (Test-Path -LiteralPath $legacyResource) { Remove-Item -LiteralPath $legacyResource -Force }
+$legacyLanguage = Join-Path $stage 'Strings\ko-KR'
+if ((Test-Path -LiteralPath $legacyLanguage) -and !(Get-ChildItem -LiteralPath $legacyLanguage -Force)) { Remove-Item -LiteralPath $legacyLanguage }
+New-Item -ItemType Directory -Force -Path (Join-Path $stage 'Strings') | Out-Null
+Copy-Item -LiteralPath (Join-Path $projectRoot 'packaging\Strings\en-US') -Destination (Join-Path $stage 'Strings') -Recurse -Force
 # WinRT resolves widget interface metadata from the package root when the host
 # marshals provider callbacks. Keeping it only beside the EXE fails with 0x8000000F.
 Copy-Item -LiteralPath (Join-Path $stage 'Provider\Microsoft.Windows.Widgets.winmd') -Destination $stage

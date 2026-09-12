@@ -17,6 +17,13 @@ internal static class YouTubeIdentity
     static HashSet<string> installed = new(StringComparer.OrdinalIgnoreCase);
     static DateTimeOffset nextScan;
 
+    internal static string? InstalledAppId(string? preferred)
+    {
+        IsInstalledYouTubeMusic(preferred ?? "");
+        lock (installedGate)
+            return preferred is not null && installed.Contains(preferred) ? preferred : installed.Order(StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+    }
+
     static bool IsInstalledYouTubeMusic(string id)
     {
         lock (installedGate) {

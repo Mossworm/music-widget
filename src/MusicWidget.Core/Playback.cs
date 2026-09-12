@@ -1,20 +1,13 @@
-using System.Globalization;
-
 namespace MusicWidget;
-
-public static class UiText
-{
-    public static string Choose(string en, string ko) => CultureInfo.CurrentUICulture.Name == "ko-KR" ? ko : en;
-}
 
 public sealed record Playback(
     string Title, string Artist, string? Artwork = null, bool Connected = false,
     bool Playing = false, bool CanPrevious = false, bool CanToggle = false, bool CanNext = false,
-    string? SessionId = null, string? Message = null)
+    string? SessionId = null, string? Message = null, bool CanLike = false, bool Liked = false)
 {
     public static Playback Empty(string? message = null) => new("YouTube Music",
-        message ?? UiText.Choose("Play a song in the YouTube Music app", "YouTube Music 앱에서 곡을 재생하세요"));
-    public static Playback Sample => new("Midnight Drive", "Mossworm · Sample", MusicWidget.Artwork.Placeholder, true, true, true, true, true, "sample");
+        message ?? "Play a song in the YouTube Music app");
+    public static Playback Sample => new("Midnight Drive", "Mossworm · Sample", MusicWidget.Artwork.Placeholder, true, true, true, true, true, "sample", CanLike: true);
 }
 
 public static class SessionSelection
