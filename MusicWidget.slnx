@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MusicWidget.Core/MusicWidget.Core.csproj" />
+    <Project Path="src/MusicWidget.Desktop/MusicWidget.Desktop.csproj" />
+    <Project Path="src/MusicWidget.Provider/MusicWidget.Provider.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MusicWidget.Checks/MusicWidget.Checks.csproj" />
+  </Folder>
+</Solution>
