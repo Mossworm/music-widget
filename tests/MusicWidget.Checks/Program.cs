@@ -3,6 +3,10 @@ using System.Xml.Linq;
 using MusicWidget;
 using Windows.Media.Control;
 
+if (args.Contains("--verify-minimized-refresh")) {
+    await MinimizedRefreshChecks.RunAsync();
+    return;
+}
 if (args.Contains("--verify-minimized-like")) {
     await MinimizedLikeChecks.RunAsync();
     return;

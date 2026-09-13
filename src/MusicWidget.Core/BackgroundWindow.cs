@@ -7,8 +7,11 @@ namespace MusicWidget;
 // BEFORE calling UI Automation (whose provider may hang).
 internal static class BackgroundWindow
 {
-    const int ExStyle = -20, Layered = 0x80000, Transparent = 0x20, NoActivate = 0x08000000;
-    const int TemporaryStyles = Layered | Transparent | NoActivate;
+    const int ExStyle = -20, Layered = 0x80000, Transparent = 0x20;
+    // WS_EX_NOACTIVATE also removes an ordinary PWA from taskbar management.
+    // Minimizing with it can leave a legacy minimized caption on the desktop.
+    // The SW_SHOWNOACTIVATE / SW_SHOWMINNOACTIVE commands already avoid focus.
+    const int TemporaryStyles = Layered | Transparent;
     [StructLayout(LayoutKind.Sequential)]
     struct Placement
     {
