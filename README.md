@@ -5,6 +5,7 @@ AI Usage Widget의 C# / Windows App SDK 구조를 바탕으로 만든 Windows 11
 - **중간 크기 고정**, Customize widget 메뉴 없음
 - 정사각형 앨범 썸네일, 노래 제목, 가수 이름
 - YouTube Music 앱 열기 / 이전 곡 / 재생·일시정지 / 다음 곡 / 좋아요·취소
+- 배경 없는 단색 아이콘 버튼: 다크 테마는 흰색, 라이트 테마는 검은색
 - Windows 밝은·어두운 테마 및 고대비 대응
 - 별도 데스크톱 미리보기 앱 제공, 창 크기 고정
 - Windows 표시 언어에 관계없이 위젯·데스크톱 UI는 영어만 사용
@@ -55,7 +56,7 @@ Windows `GlobalSystemMediaTransportControlsSessionManager`에서 앨범 이미�
 
 좋아요는 Windows 미디어 세션 API에서 제공하지 않아 Windows UI Automation의 `TogglePattern`으로 PWA 플레이어 바의 실제 버튼을 제어합니다. 현재 곡 제목과 가수가 일치하는 플레이어만 허용하며, 여러 창이 일치하면 동작하지 않습니다. 한국어·영어 좋아요 버튼을 지원하며, 브라우저 접근성이나 YouTube Music 화면 구조가 바뀌면 사용하지 못할 수 있습니다. UI Automation은 별도 스레드에서 실행하고 시간 초과 후 늦은 버튼 실행을 막습니다. 앱 열기는 Win32 창 활성화를 사용하므로 Windows가 포커스 이동을 거부하면 안내가 표시됩니다.
 
-위젯 본문은 Windows 호스트가 Adaptive Card로 렌더링하므로 버튼 모양과 간격은 WPF 데스크톱 미리보기와 일부 다를 수 있습니다. 크기와 Customize 메뉴의 지원 여부는 패키지 매니페스트에 선언되어 있습니다. Windows가 제공하는 기본 `…` 메뉴는 유지됩니다.
+위젯 본문은 Windows 호스트가 Adaptive Card로 렌더링합니다. 제어 버튼은 기본 ActionSet 대신 투명한 아이콘 이미지의 `selectAction`을 사용하며, 40×36px 클릭 영역과 기능별 접근성 이름을 제공합니다. 위젯의 [`$host.hostTheme`](https://github.com/microsoft/WindowsAppSDK/discussions/3300) 값에 따라 다크 테마에서는 흰색, 라이트 테마에서는 검은색 아이콘을 표시합니다. 사용할 수 없는 버튼은 흐리게 표시하고 입력을 비활성화합니다. 데스크톱 미리보기에도 같은 벡터 아이콘을 사용합니다. 크기와 Customize 메뉴의 지원 여부는 패키지 매니페스트에 선언되어 있습니다. Windows가 제공하는 기본 `…` 메뉴는 유지됩니다.
 
 ## 검증
 

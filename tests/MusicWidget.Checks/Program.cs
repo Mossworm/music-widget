@@ -35,9 +35,10 @@ Check(SessionSelection.Select([(true, true), (true, true)], 1) == 1, "Current Yo
 Check(SessionSelection.Select([], -1) == -1, "No sessions handled");
 using var empty = JsonDocument.Parse(Card.Render(Playback.Empty()));
 JsonElement[] Actions(JsonDocument doc) => doc.RootElement.GetProperty("body")[3].GetProperty("columns").EnumerateArray()
-    .SelectMany(c => c.GetProperty("items")[0].GetProperty("actions").EnumerateArray()).ToArray();
+    .Select(c => c.GetProperty("items")[0].GetProperty("selectAction")).ToArray();
 Check(empty.RootElement.GetProperty("body")[3].GetProperty("columns").EnumerateArray().All(c => c.GetProperty("width").GetString() == "stretch"
-    && c.GetProperty("items")[0].GetProperty("actions").GetArrayLength() == 1), "Five controls share the available width without auto-width clipping");
+    && c.GetProperty("items").EnumerateArray().All(i => i.GetProperty("type").GetString() == "Image"
+        && i.GetProperty("width").GetString() == "40px" && i.GetProperty("height").GetString() == "36px")), "Five background-free icon controls retain equal columns and click targets");
 Check(Actions(empty).Select(a => a.GetProperty("verb").GetString()).SequenceEqual(["open", "previous", "play", "next", "like"]), "Open and like flank the three transport controls");
 Check(Actions(empty)[0].GetProperty("isEnabled").GetBoolean(), "Open is available without a media session");
 Check(Actions(empty).Skip(1).All(a => !a.GetProperty("isEnabled").GetBoolean()), "Disconnected playback and like controls disabled");
@@ -57,6 +58,10 @@ Check(!Actions(noLike)[4].GetProperty("isEnabled").GetBoolean() && Actions(noLik
 Check(YouTubeApp.IsLikeLabel("좋아요") && YouTubeApp.IsLikeLabel("좋아요 취소") && YouTubeApp.IsLikeLabel("Like") && YouTubeApp.IsLikeLabel("Remove like"), "Korean and English like labels recognized");
 Check(!YouTubeApp.IsLikeLabel("싫어요") && !YouTubeApp.IsLikeLabel("Dislike") && !YouTubeApp.IsLikeLabel("Liked Music"), "Dislike and library controls never matched");
 Check(YouTubeApp.IsMusicWindow("Song - YouTube Music", "chrome", "Chrome._crx_test") && YouTubeApp.IsMusicWindow("YouTube Music", "msedge", null), "PWA windows recognized before and during playback");
+Check(YouTubeApp.IsMusicWindow("YouTube Music - 두 사람 | YouTube Music", "chrome", "Chrome._crx_test")
+    && YouTubeApp.IsMusicWindow("Song | YouTube Music", "msedge", "Microsoft.MicrosoftEdge_test"), "Playing PWA pipe-separated titles keep like available");
+Check(!YouTubeApp.IsMusicWindow("Song | YouTube Music - Google Chrome", "chrome", null)
+    && !YouTubeApp.IsMusicWindow("Song | YouTube Music", "msedge", "Chrome._crx_test"), "Pipe-separated titles still exclude browser tabs and mismatched browsers");
 Check(!YouTubeApp.IsMusicWindow("YouTube Music - Google Chrome", "chrome", null) && !YouTubeApp.IsMusicWindow("YouTube Music", "notepad", null)
     && !YouTubeApp.IsMusicWindow("YouTube Music", "msedge", "Chrome._crx_test"), "Other windows and mismatched browser excluded");
 var manifest = XDocument.Load(Path.Combine("packaging", "AppxManifest.xml"));

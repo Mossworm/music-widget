@@ -14,7 +14,7 @@ public static class Artwork
         if (x >= 105 && x <= 146 && Math.Abs(y - 120) < (146 - x) * 0.66) return (238, 223, 220, 255);
         return (38 + y / 12, 36 + x / 22, 44 + y / 16, 255);
     });
-    static string Png(int width, int height, Func<int, int, (int R, int G, int B, int A)> pixel)
+    internal static string Png(int width, int height, Func<int, int, (int R, int G, int B, int A)> pixel)
     {
         using var png = new MemoryStream();
         png.Write([137, 80, 78, 71, 13, 10, 26, 10]);

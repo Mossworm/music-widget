@@ -18,11 +18,11 @@ public sealed class MainWindow : Window
     readonly Image cover = new() { Width = 120, Height = 120, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Center };
     readonly TextBlock title = new() { FontSize = 13, FontWeight = FontWeights.SemiBold, TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new(16, 8, 16, 0) };
     readonly TextBlock artist = new() { FontSize = 12, TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new(16, 3, 16, 0) };
-    readonly Button open = Control("\uE8A7", "Open YouTube Music");
-    readonly Button previous = Control("\uE892", "Previous track");
-    readonly Button toggle = Control("\uE768", "Play");
-    readonly Button next = Control("\uE893", "Next track");
-    readonly Button like = Control("\uE8E1", "Like");
+    readonly Button open = Control("Open YouTube Music");
+    readonly Button previous = Control("Previous track");
+    readonly Button toggle = Control("Play");
+    readonly Button next = Control("Next track");
+    readonly Button like = Control("Like");
     Playback state;
     bool busy, closed;
     string? imageData;
@@ -53,9 +53,9 @@ public sealed class MainWindow : Window
         Closed += (_, _) => { closed = true; timer.Stop(); SystemEvents.UserPreferenceChanged -= ThemeChanged; };
         ApplyTheme(); Paint();
     }
-    static Button Control(string glyph, string label)
+    static Button Control(string label)
     {
-        var button = new Button { Content = glyph, FontFamily = new("Segoe Fluent Icons"), FontSize = 18, Width = 42, Height = 34, Margin = new(3, 0, 3, 0), ToolTip = label, Background = Brushes.Transparent, BorderThickness = new(0), Cursor = System.Windows.Input.Cursors.Hand };
+        var button = new Button { Content = new Image { Width = 24, Height = 24 }, Width = 40, Height = 36, Margin = new(6, 0, 6, 0), ToolTip = label, Background = Brushes.Transparent, BorderThickness = new(0), Cursor = System.Windows.Input.Cursors.Hand };
         AutomationProperties.SetName(button, label);
         var border = new FrameworkElementFactory(typeof(Border));
         border.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
@@ -70,7 +70,7 @@ public sealed class MainWindow : Window
         button.Template = template;
         return button;
     }
-    void ThemeChanged(object sender, UserPreferenceChangedEventArgs e) => Dispatcher.BeginInvoke(() => ApplyTheme());
+    void ThemeChanged(object sender, UserPreferenceChangedEventArgs e) => Dispatcher.BeginInvoke(() => { ApplyTheme(); Paint(); });
     void ApplyTheme(bool? forceDark = null)
     {
         var dark = forceDark ?? (Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1) is int value && value == 0);
@@ -78,7 +78,8 @@ public sealed class MainWindow : Window
         Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(dark ? "#F5F5F7" : "#252529"));
         artist.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(dark ? "#B7B7BD" : "#6B6B73"));
         if (SystemParameters.HighContrast && forceDark is null) { root.Background = SystemColors.WindowBrush; Foreground = artist.Foreground = SystemColors.WindowTextBrush; }
-        open.Foreground = previous.Foreground = toggle.Foreground = next.Foreground = like.Foreground = Foreground;
+        open.Foreground = previous.Foreground = toggle.Foreground = next.Foreground = like.Foreground = SystemParameters.HighContrast && forceDark is null
+            ? SystemColors.WindowTextBrush : dark ? Brushes.White : Brushes.Black;
     }
     void Paint()
     {
@@ -91,14 +92,16 @@ public sealed class MainWindow : Window
         AutomationProperties.SetName(cover, state.Title);
         previous.IsEnabled = !busy && state.CanPrevious; toggle.IsEnabled = !busy && state.CanToggle; next.IsEnabled = !busy && state.CanNext;
         open.IsEnabled = !busy; like.IsEnabled = !busy && state.CanLike;
-        like.Content = state.Liked ? "\uF3BF" : "\uE8E1";
+        SetIcon(open, "open"); SetIcon(previous, "previous"); SetIcon(next, "next");
+        SetIcon(like, state.Liked ? "unlike" : "like");
         var likeLabel = !state.CanLike ? "Open YouTube Music to use Like"
             : state.Liked ? "Unlike" : "Like";
         like.ToolTip = likeLabel; AutomationProperties.SetName(like, likeLabel);
-        toggle.Content = state.Playing ? "\uE769" : "\uE768";
+        SetIcon(toggle, state.Playing ? "pause" : "play");
         var label = state.Playing ? "Pause" : "Play";
         toggle.ToolTip = label; AutomationProperties.SetName(toggle, label);
     }
+    static void SetIcon(Button button, string verb) => ((Image)button.Content).Source = ControlIcons.Drawing(verb, button.Foreground);
     async Task RefreshAsync()
     {
         if (busy || closed) return;

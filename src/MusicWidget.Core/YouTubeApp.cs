@@ -34,7 +34,9 @@ internal static class YouTubeApp
             : source?.StartsWith("Microsoft.MicrosoftEdge", StringComparison.OrdinalIgnoreCase) == true || source?.StartsWith("msedge", StringComparison.OrdinalIgnoreCase) == true ? "msedge" : null;
         return (process is "chrome" or "msedge") && (browser is null || process == browser)
             && (caption.Equals("YouTube Music", StringComparison.OrdinalIgnoreCase)
-                || caption.EndsWith(" - YouTube Music", StringComparison.OrdinalIgnoreCase));
+                || caption.EndsWith(" - YouTube Music", StringComparison.OrdinalIgnoreCase)
+                // The PWA also uses "YouTube Music - <song> | YouTube Music" while playing.
+                || caption.EndsWith(" | YouTube Music", StringComparison.OrdinalIgnoreCase));
     }
 
     static List<nint> Windows(string? source)

@@ -6,13 +6,19 @@ public static class Card
 {
     public static string Render(Playback state)
     {
-        object Button(string icon, string title, string verb, bool enabled) => new {
-            type = "Action.Execute", title = icon, tooltip = title, verb, isEnabled = enabled,
-            associatedInputs = "none", data = new { sessionId = state.SessionId }
+        object Icon(string title, string verb, bool enabled, bool dark) => new Dictionary<string, object> {
+            ["type"] = "Image", ["url"] = ControlIcons.Png(verb, dark, enabled),
+            ["width"] = "40px", ["height"] = "36px", ["horizontalAlignment"] = "Center",
+            ["spacing"] = "None", ["altText"] = title,
+            ["$when"] = dark ? "${$host.hostTheme == 'dark'}" : "${$host.hostTheme != 'dark'}",
+            ["selectAction"] = new {
+                type = "Action.Execute", title, tooltip = title, verb, isEnabled = enabled,
+                associatedInputs = "none", data = new { sessionId = state.SessionId }
+            }
         };
-        object Column(object action) => new {
+        object Button(string title, string verb, bool enabled) => new {
             type = "Column", width = "stretch", spacing = "Small",
-            items = new object[] { new { type = "ActionSet", actions = new[] { action } } }
+            items = new[] { Icon(title, verb, enabled, false), Icon(title, verb, enabled, true) }
         };
         return JsonSerializer.Serialize(new Dictionary<string, object> {
             ["$schema"] = "http://adaptivecards.io/schemas/adaptive-card.json", ["type"] = "AdaptiveCard", ["version"] = "1.5",
@@ -21,11 +27,11 @@ public static class Card
                 new { type = "TextBlock", text = state.Title, horizontalAlignment = "Center", weight = "Bolder", size = "Small", wrap = false, maxLines = 1, spacing = "Small" },
                 new { type = "TextBlock", text = state.Message ?? state.Artist, horizontalAlignment = "Center", size = "Small", isSubtle = true, wrap = false, maxLines = 1, spacing = "None" },
                 new { type = "ColumnSet", spacing = "Small", columns = new object[] {
-                    Column(Button("↗", "Open YouTube Music", "open", true)),
-                    Column(Button("⏮", "Previous track", "previous", state.CanPrevious)),
-                    Column(Button(state.Playing ? "⏸" : "▶", state.Playing ? "Pause" : "Play", state.Playing ? "pause" : "play", state.CanToggle)),
-                    Column(Button("⏭", "Next track", "next", state.CanNext)),
-                    Column(Button(state.Liked ? "♥" : "♡", state.Liked ? "Unlike" : "Like", state.Liked ? "unlike" : "like", state.CanLike))
+                    Button("Open YouTube Music", "open", true),
+                    Button("Previous track", "previous", state.CanPrevious),
+                    Button(state.Playing ? "Pause" : "Play", state.Playing ? "pause" : "play", state.CanToggle),
+                    Button("Next track", "next", state.CanNext),
+                    Button(state.Liked ? "Unlike" : "Like", state.Liked ? "unlike" : "like", state.CanLike)
                 } }
             }
         });
