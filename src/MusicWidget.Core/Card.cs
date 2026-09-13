@@ -10,15 +10,18 @@ public static class Card
             ["type"] = "Image", ["url"] = ControlIcons.Png(verb, dark, enabled),
             ["width"] = "40px", ["height"] = "36px", ["horizontalAlignment"] = "Center",
             ["spacing"] = "None", ["altText"] = title,
-            ["$when"] = dark ? "${$host.hostTheme == 'dark'}" : "${$host.hostTheme != 'dark'}",
-            ["selectAction"] = new {
-                type = "Action.Execute", title, tooltip = title, verb, isEnabled = enabled,
-                associatedInputs = "none", data = new { sessionId = state.SessionId }
-            }
+            ["$when"] = dark ? "${$host.hostTheme == 'dark'}" : "${$host.hostTheme != 'dark'}"
         };
         object Button(string title, string verb, bool enabled) => new {
             type = "Column", width = "stretch", spacing = "Small",
-            items = new[] { Icon(title, verb, enabled, false), Icon(title, verb, enabled, true) }
+            items = new[] { new {
+                type = "Container", spacing = "None",
+                selectAction = new {
+                    type = "Action.Execute", title, tooltip = title, verb, isEnabled = enabled,
+                    associatedInputs = "none", data = new { sessionId = state.SessionId }
+                },
+                items = new[] { Icon(title, verb, enabled, false), Icon(title, verb, enabled, true) }
+            } }
         };
         return JsonSerializer.Serialize(new Dictionary<string, object> {
             ["$schema"] = "http://adaptivecards.io/schemas/adaptive-card.json", ["type"] = "AdaptiveCard", ["version"] = "1.5",

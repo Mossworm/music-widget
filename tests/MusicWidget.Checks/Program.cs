@@ -37,7 +37,7 @@ using var empty = JsonDocument.Parse(Card.Render(Playback.Empty()));
 JsonElement[] Actions(JsonDocument doc) => doc.RootElement.GetProperty("body")[3].GetProperty("columns").EnumerateArray()
     .Select(c => c.GetProperty("items")[0].GetProperty("selectAction")).ToArray();
 Check(empty.RootElement.GetProperty("body")[3].GetProperty("columns").EnumerateArray().All(c => c.GetProperty("width").GetString() == "stretch"
-    && c.GetProperty("items").EnumerateArray().All(i => i.GetProperty("type").GetString() == "Image"
+    && c.GetProperty("items")[0].GetProperty("items").EnumerateArray().All(i => i.GetProperty("type").GetString() == "Image"
         && i.GetProperty("width").GetString() == "40px" && i.GetProperty("height").GetString() == "36px")), "Five background-free icon controls retain equal columns and click targets");
 Check(Actions(empty).Select(a => a.GetProperty("verb").GetString()).SequenceEqual(["open", "previous", "play", "next", "like"]), "Open and like flank the three transport controls");
 Check(Actions(empty)[0].GetProperty("isEnabled").GetBoolean(), "Open is available without a media session");

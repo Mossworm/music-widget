@@ -57,16 +57,16 @@ public sealed class MainWindow : Window
     {
         var button = new Button { Content = new Image { Width = 24, Height = 24 }, Width = 40, Height = 36, Margin = new(6, 0, 6, 0), ToolTip = label, Background = Brushes.Transparent, BorderThickness = new(0), Cursor = System.Windows.Input.Cursors.Hand };
         AutomationProperties.SetName(button, label);
-        var border = new FrameworkElementFactory(typeof(Border));
+        var border = new FrameworkElementFactory(typeof(Border), "HoverBackground");
         border.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
         border.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
         var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
         presenter.SetValue(HorizontalAlignmentProperty, HorizontalAlignment.Center); presenter.SetValue(VerticalAlignmentProperty, VerticalAlignment.Center);
         border.AppendChild(presenter);
         var template = new ControlTemplate(typeof(Button)) { VisualTree = border };
-        var hover = new Trigger { Property = IsMouseOverProperty, Value = true }; hover.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(Color.FromArgb(35, 128, 128, 128)))); template.Triggers.Add(hover);
-        var focus = new Trigger { Property = IsKeyboardFocusedProperty, Value = true }; focus.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(Color.FromArgb(65, 128, 128, 128)))); template.Triggers.Add(focus);
-        var disabled = new Trigger { Property = IsEnabledProperty, Value = false }; disabled.Setters.Add(new Setter(OpacityProperty, 0.3)); template.Triggers.Add(disabled);
+        var hover = new Trigger { Property = IsMouseOverProperty, Value = true }; hover.Setters.Add(new Setter(Border.BackgroundProperty, new SolidColorBrush(Color.FromArgb(35, 128, 128, 128)), "HoverBackground")); template.Triggers.Add(hover);
+        var focus = new Trigger { Property = IsKeyboardFocusedProperty, Value = true }; focus.Setters.Add(new Setter(Border.BackgroundProperty, new SolidColorBrush(Color.FromArgb(65, 128, 128, 128)), "HoverBackground")); template.Triggers.Add(focus);
+        var disabled = new Trigger { Property = IsEnabledProperty, Value = false }; disabled.Setters.Add(new Setter(OpacityProperty, 0.3)); disabled.Setters.Add(new Setter(Border.BackgroundProperty, Brushes.Transparent, "HoverBackground")); template.Triggers.Add(disabled);
         button.Template = template;
         return button;
     }
