@@ -62,7 +62,7 @@ try {
     }
 
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
-    Write-Host 'Building and checking Music Controller...'
+    Write-Host 'Building and checking YT Music Controller...'
     Invoke-Checked $dotnet @('build', 'MusicWidget.slnx', '-c', $Configuration, '--nologo')
     Invoke-Checked $dotnet @('run', '--project', 'tests/MusicWidget.Checks', '-c', $Configuration, '--no-build')
     foreach ($app in @('Desktop', 'Provider')) {
@@ -89,7 +89,7 @@ try {
         return
     }
 
-    Write-Host 'Reinstalling Music Controller for the current Windows user...'
+    Write-Host 'Reinstalling YT Music Controller for the current Windows user...'
     Assert-ArtifactPath $package
     Assert-ArtifactPath $stage
     Assert-ArtifactPath $backup
@@ -129,7 +129,7 @@ try {
     }
     Copy-Item -LiteralPath $msix -Destination (Join-Path $artifacts 'MusicWidget.msix') -Force
     Write-Host "Installed successfully: $($registered.PackageFullName)"
-    Write-Host 'Open Win + W. If needed, add the Music Controller widget.'
+    Write-Host 'Open Win + W. If needed, add the YT Music Controller widget.'
     Write-Host "Previous files (if any): $backup"
 }
 finally { Pop-Location }

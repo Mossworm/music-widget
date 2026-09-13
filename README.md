@@ -1,4 +1,4 @@
-# Music Controller
+# YT Music Controller
 
 AI Usage Widget의 C# / Windows App SDK 구조를 바탕으로 만든 Windows 11 음악 위젯입니다. YouTube Music PWA의 Windows 미디어 세션을 이용합니다.
 
@@ -13,7 +13,7 @@ AI Usage Widget의 C# / Windows App SDK 구조를 바탕으로 만든 Windows 11
 ## 사용
 
 1. Chrome 또는 Edge에 설치한 **YouTube Music PWA**를 열고 곡을 한 번 재생합니다.
-2. 개발 등록 후 **Win + W → 위젯 추가 → Music Controller**를 고정합니다.
+2. 개발 등록 후 **Win + W → 위젯 추가 → YT Music Controller**를 고정합니다.
 3. 위젯 버튼으로 앱 열기, 이전 곡, 재생·일시정지, 다음 곡, 좋아요·취소를 제어합니다.
 
 왼쪽 앱 열기 버튼은 연결 전에도 사용할 수 있습니다. 실행 중인 YouTube Music PWA 창이 있으면 최소화를 복원하고 포커스를 이동하며, 없으면 설치된 앱 목록에서 찾아 실행합니다. PWA가 설치되어 있지 않으면 YouTube Music 웹사이트를 엽니다.
@@ -40,7 +40,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build-install.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Users\jwide\Mossworm\Workspace\music-widget\build-install.ps1"
 ```
 
-스크립트는 Release 빌드, 27개 검사, 자체 포함 x64 게시, 미리보기·리소스 생성, MSIX 패키징을 완료한 뒤 현재 사용자의 개발 등록을 갱신합니다. 기존 실행 파일은 `artifacts/build-<ID>/previous-package`에 보관하고, 등록에 실패하면 복원합니다. 실행 중인 이 프로젝트의 위젯 제공자와 데스크톱 미리보기는 교체 직전에 종료합니다. 완료 후 **Win + W**로 열고, 카드가 없다면 **위젯 추가 → Music Controller → 고정**을 선택하세요.
+스크립트는 Release 빌드, 27개 검사, 자체 포함 x64 게시, 미리보기·리소스 생성, MSIX 패키징을 완료한 뒤 현재 사용자의 개발 등록을 갱신합니다. 기존 실행 파일은 `artifacts/build-<ID>/previous-package`에 보관하고, 등록에 실패하면 복원합니다. 실행 중인 이 프로젝트의 위젯 제공자와 데스크톱 미리보기는 교체 직전에 종료합니다. 완료 후 **Win + W**로 열고, 카드가 없다면 **위젯 추가 → YT Music Controller → 고정**을 선택하세요.
 
 설치 없이 빌드만 하려면 `-BuildOnly`를 붙입니다. 이 경우 결과물은 별도 `artifacts/build-<ID>/` 폴더에 생성되며 설치된 파일은 교체하지 않습니다. 빌드·패키징 오류 시 재설치를 진행하지 않으며, 패키징 로그도 해당 빌드 폴더에 남습니다.
 

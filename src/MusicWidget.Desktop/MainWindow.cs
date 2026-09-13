@@ -30,12 +30,12 @@ public sealed class MainWindow : Window
     public MainWindow(bool sample)
     {
         this.sample = sample; state = sample ? Playback.Sample : Playback.Empty();
-        Title = sample ? "Music Controller · Sample" : "Music Controller";
+        Title = sample ? "YT Music Controller · Sample" : "YT Music Controller";
         SizeToContent = SizeToContent.WidthAndHeight; ResizeMode = ResizeMode.CanMinimize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen; FontFamily = new("Segoe UI");
         var header = new StackPanel { Orientation = Orientation.Horizontal, Margin = new(16, 11, 0, 0), VerticalAlignment = VerticalAlignment.Top };
         header.Children.Add(new TextBlock { Text = "●", Foreground = Brushes.IndianRed, FontSize = 14, Margin = new(0, 0, 7, 0) });
-        header.Children.Add(new TextBlock { Text = "Music Controller", FontSize = 12 });
+        header.Children.Add(new TextBlock { Text = "YT Music Controller", FontSize = 12 });
         root.Children.Add(header);
         var body = new StackPanel { Margin = new(0, 42, 0, 0), VerticalAlignment = VerticalAlignment.Top };
         body.Children.Add(cover); body.Children.Add(title); body.Children.Add(artist);
