@@ -62,6 +62,10 @@ using var noLike = JsonDocument.Parse(Card.Render(Playback.Sample with { CanLike
 Check(!Actions(noLike)[4].GetProperty("isEnabled").GetBoolean() && Actions(noLike)[2].GetProperty("isEnabled").GetBoolean(), "Unavailable accessibility does not disable transport");
 Check(YouTubeApp.IsLikeLabel("좋아요") && YouTubeApp.IsLikeLabel("좋아요 취소") && YouTubeApp.IsLikeLabel("Like") && YouTubeApp.IsLikeLabel("Remove like"), "Korean and English like labels recognized");
 Check(!YouTubeApp.IsLikeLabel("싫어요") && !YouTubeApp.IsLikeLabel("Dislike") && !YouTubeApp.IsLikeLabel("Liked Music"), "Dislike and library controls never matched");
+Check(YouTubeApp.NormalizeTrackText("Song (feat. Artist) - Remastered") == "songfeatartistremastered", "Track text normalization removes punctuation and spacing");
+Check(YouTubeApp.NormalizeTrackText("Café") == YouTubeApp.NormalizeTrackText("Cafe\u0301"), "Track text normalization handles Unicode composition");
+Check(YouTubeApp.MatchesTrackTitle("이별노래 (feat. Hash Swan)", "이별노래"), "Feature suffix in accessibility title is accepted");
+Check(!YouTubeApp.MatchesTrackTitle("이별노래 (feat. Hash Swan)", "이별노래 (feat. Another Artist)"), "Different feature artists are not conflated");
 Check(YouTubeApp.IsMusicWindow("Song - YouTube Music", "chrome", "Chrome._crx_test") && YouTubeApp.IsMusicWindow("YouTube Music", "msedge", null), "PWA windows recognized before and during playback");
 Check(YouTubeApp.IsMusicWindow("YouTube Music - 두 사람 | YouTube Music", "chrome", "Chrome._crx_test")
     && YouTubeApp.IsMusicWindow("Song | YouTube Music", "msedge", "Microsoft.MicrosoftEdge_test"), "Playing PWA pipe-separated titles keep like available");

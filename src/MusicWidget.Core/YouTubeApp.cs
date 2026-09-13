@@ -136,12 +136,41 @@ internal static class YouTubeApp
 
     static bool HasClass(AutomationElement element, string value) => element.Current.ClassName.Split(' ').Contains(value);
 
+    internal static string NormalizeTrackText(string value) => string.Concat(value
+        .Normalize(NormalizationForm.FormKC)
+        .ToLowerInvariant()
+        .Where(char.IsLetterOrDigit));
+
+    internal static bool MatchesTrackTitle(string actual, string expected)
+    {
+        var normalizedActual = NormalizeTrackText(actual);
+        var normalizedExpected = NormalizeTrackText(expected);
+        if (normalizedActual == normalizedExpected) return true;
+        var actualBase = FeatureBase(actual);
+        var expectedBase = FeatureBase(expected);
+        return actualBase.Length > 0 && actualBase == expectedBase
+            && (actualBase != normalizedActual) != (expectedBase != normalizedExpected);
+    }
+
+    static string FeatureBase(string value)
+    {
+        var normalized = value.Normalize(NormalizationForm.FormKC);
+        foreach (var marker in new[] { "feat", "ft", "with" }) {
+            var index = normalized.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (index > 0 && !char.IsLetterOrDigit(normalized[index - 1]))
+                return NormalizeTrackText(normalized[..index]);
+        }
+        return NormalizeTrackText(value);
+    }
+
     static bool MatchesTrack(AutomationElement bar, string title, string artist)
     {
+        var normalizedArtist = NormalizeTrackText(artist);
         var children = bar.FindAll(TreeScope.Descendants, Condition.TrueCondition).Cast<AutomationElement>();
-        return children.Any(e => HasClass(e, "ytmusic-player-bar") && HasClass(e, "title") && e.Current.Name == title)
+        return children.Any(e => HasClass(e, "ytmusic-player-bar") && HasClass(e, "title")
+                && MatchesTrackTitle(e.Current.Name, title))
             && children.Any(e => HasClass(e, "ytmusic-player-bar") && HasClass(e, "byline")
-                && e.Current.Name.Contains(artist, StringComparison.OrdinalIgnoreCase));
+                && NormalizeTrackText(e.Current.Name).Contains(normalizedArtist, StringComparison.Ordinal));
     }
 
     static (AutomationElement Bar, AutomationElement Button)? FindLike(string source, string title, string artist, CancellationToken token)
