@@ -22,6 +22,9 @@ internal static class YouTubeApp
     [StructLayout(LayoutKind.Sequential)]
     struct NativeMessage { public nint Window; public uint Message; public nuint WParam; public nint LParam; public uint Time; public int X, Y; public uint Private; }
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(nint window);
+    [DllImport("user32.dll")] static extern bool BringWindowToTop(nint window);
+    [DllImport("user32.dll")] static extern nint SetActiveWindow(nint window);
+    [DllImport("user32.dll")] static extern bool IsWindow(nint window);
     [DllImport("user32.dll")] static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(nint window, out uint processId);
     [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
@@ -56,8 +59,10 @@ internal static class YouTubeApp
         return result;
     }
 
-    internal static bool Focus(nint window)
+    internal static bool Focus(nint window, CancellationToken token = default)
     {
+        token.ThrowIfCancellationRequested();
+        if (!IsWindow(window)) return false;
         // ShowWindowAsync only queues restoration: focusing immediately can race
         // Chrome's minimized state. Wait for SC_RESTORE to be processed first.
         if (IsIconic(window)) {
@@ -68,13 +73,28 @@ internal static class YouTubeApp
         SetForegroundWindow(window);
         if (IsFocused(window)) return true;
         var current = GetCurrentThreadId();
-        var foreground = GetWindowThreadProcessId(GetForegroundWindow(), out _);
-        var attached = foreground != 0 && foreground != current && AttachThreadInput(current, foreground, true);
-        try {
-            SetForegroundWindow(window);
-            return IsFocused(window);
+        var target = GetWindowThreadProcessId(window, out _);
+        // The widget callback runs on a worker, separate from both the foreground
+        // host and Chromium. Join both queues while activating and raising the PWA.
+        // Re-read the foreground thread if the widget board is closing meanwhile.
+        for (var attempt = 0; attempt < 2; attempt++) {
+            token.ThrowIfCancellationRequested();
+            var foreground = GetWindowThreadProcessId(GetForegroundWindow(), out _);
+            var attachedForeground = foreground != 0 && foreground != current && AttachThreadInput(current, foreground, true);
+            var attachedTarget = target != 0 && target != current && target != foreground && AttachThreadInput(current, target, true);
+            try {
+                token.ThrowIfCancellationRequested();
+                BringWindowToTop(window);
+                SetForegroundWindow(window);
+                SetActiveWindow(window);
+            }
+            finally {
+                if (attachedTarget) AttachThreadInput(current, target, false);
+                if (attachedForeground) AttachThreadInput(current, foreground, false);
+            }
+            if (IsFocused(window)) return true;
         }
-        finally { if (attached) AttachThreadInput(current, foreground, false); }
+        return false;
     }
 
     static bool IsFocused(nint window)
@@ -94,7 +114,7 @@ internal static class YouTubeApp
         });
         if (window == 0) window = windows.FirstOrDefault();
         token.ThrowIfCancellationRequested();
-        if (window != 0) return Focus(window);
+        if (window != 0) return Focus(window, token);
         var appId = YouTubeIdentity.InstalledAppId(source);
         token.ThrowIfCancellationRequested();
         using var launched = Process.Start(appId is null

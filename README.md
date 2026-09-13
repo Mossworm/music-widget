@@ -28,6 +28,23 @@ AI Usage Widget의 C# / Windows App SDK 구조를 바탕으로 만든 Windows 11
 
 Windows 11 22H2 이상 / x64 / .NET 10 SDK / Windows SDK(makeappx, makepri) / Windows Web Experience Pack이 필요합니다. 최초 빌드에는 NuGet 연결이 필요합니다.
 
+프로젝트 폴더에서 다음 명령으로 빌드·검사·재설치를 한 번에 실행합니다.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build-install.ps1
+```
+
+다른 폴더에서도 스크립트의 전체 경로를 지정하면 실행할 수 있습니다.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Users\jwide\Mossworm\Workspace\music-widget\build-install.ps1"
+```
+
+스크립트는 Release 빌드, 27개 검사, 자체 포함 x64 게시, 미리보기·리소스 생성, MSIX 패키징을 완료한 뒤 현재 사용자의 개발 등록을 갱신합니다. 기존 실행 파일은 `artifacts/build-<ID>/previous-package`에 보관하고, 등록에 실패하면 복원합니다. 실행 중인 이 프로젝트의 위젯 제공자와 데스크톱 미리보기는 교체 직전에 종료합니다. 완료 후 **Win + W**로 열고, 카드가 없다면 **위젯 추가 → Music Controller → 고정**을 선택하세요.
+
+설치 없이 빌드만 하려면 `-BuildOnly`를 붙입니다. 이 경우 결과물은 별도 `artifacts/build-<ID>/` 폴더에 생성되며 설치된 파일은 교체하지 않습니다. 빌드·패키징 오류 시 재설치를 진행하지 않으며, 패키징 로그도 해당 빌드 폴더에 남습니다.
+
+패키지 루트에도 `Microsoft.Windows.Widgets.winmd`를 배치하여 위젯 제공자의 WinRT 메타데이터 검색을 지원합니다. 등록 후 실제 COM 제공자를 활성화해 확인하며, 활성화에 실패해도 기존 파일과 등록으로 복원합니다.
 
 개발 등록에는 Windows 개발자 모드가 필요합니다. 스크립트는 시스템 정책이나 인증서를 변경하지 않습니다. 결과물은 `artifacts/MusicWidget.msix`와 `artifacts/package/`입니다. 등록 후 `artifacts/package`를 이동하거나 삭제하지 마세요. 다른 PC 배포에는 신뢰할 수 있는 서명 또는 Store 배포가 필요합니다.
 
@@ -55,5 +72,7 @@ Windows `GlobalSystemMediaTransportControlsSessionManager`에서 앨범 이미�
 버튼 잘림 수정: Adaptive Card의 양옆 빈 열과 자동 너비 ActionSet을 제거하고, 다섯 버튼이 각각 같은 너비의 열을 사용하도록 변경했습니다. 최소화 복원은 비동기 복원 요청 직후 포커스를 시도하는 대신 복원 명령 처리가 끝난 뒤 활성화합니다. 포커스를 담당하는 작업 스레드의 메시지 큐를 준비하고, 실제 전경 창과 최소화 상태로 성공 여부를 확인합니다. 앱 열기는 좋아요 접근성 조회의 잠금과 분리했습니다.
 
 실제 Windows 위젯 패널의 300px 카드에서 다섯 버튼이 잘리지 않고 보이는 것을 캡처로 확인했습니다. 해당 카드의 앱 열기 버튼을 직접 호출해 최소화된 기존 YouTube Music 창이 복원되고 전경 창으로 활성화되는 것도 확인했습니다. 캡처: `artifacts/live-widget.png`.
+
+2026-09-13 포커스 보강: 위젯 작업 스레드를 현재 전경 창 및 YouTube Music 창의 입력 큐에 잠시 연결하고, 창 순서와 활성 창을 함께 갱신한 뒤 연결을 해제합니다. 위젯 패널이 닫히면서 전경 창이 바뀌는 경우 한 번 더 시도하며, 항상 위에 고정하는 설정은 사용하지 않습니다. 실제 Chrome PWA에 공유 앱 열기 코드를 실행하여 다른 Chrome 창 뒤에 가려진 상태와 최소화 상태에서 모두 `GetForegroundWindow`가 YouTube Music이고 최소화가 해제됐음을 확인했습니다. 재설치 후 실제 Windows 위젯 카드의 앱 열기 버튼을 마우스로 클릭한 검사에서도 가림·최소화 두 경우 모두 복원과 전경 활성화를 확인했습니다. 27개 검사 및 `build-install.ps1`을 통한 재등록·COM 제공자 활성화도 통과했습니다.
 
 참고 문서: [Windows 미디어 세션 API](https://learn.microsoft.com/en-us/uwp/api/windows.media.control.globalsystemmediatransportcontrolssession), [Windows 위젯 매니페스트](https://learn.microsoft.com/en-us/windows/apps/develop/widgets/widget-provider-manifest), [창 활성화](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow), [UI Automation 스레드](https://learn.microsoft.com/en-us/dotnet/framework/ui-automation/ui-automation-threading-issues).
