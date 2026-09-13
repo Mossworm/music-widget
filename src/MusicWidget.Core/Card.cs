@@ -29,7 +29,7 @@ public static class Card
                 new { type = "Image", url = state.Artwork ?? Artwork.Placeholder, width = "120px", height = "120px", horizontalAlignment = "Center", altText = state.Connected ? state.Title : "YouTube Music", spacing = "None" },
                 new { type = "TextBlock", text = state.Title, horizontalAlignment = "Center", weight = "Bolder", size = "Small", wrap = false, maxLines = 1, spacing = "Small" },
                 new { type = "TextBlock", text = state.Message ?? state.Artist, horizontalAlignment = "Center", size = "Small", isSubtle = true, wrap = false, maxLines = 1, spacing = "None" },
-                new { type = "ColumnSet", spacing = "Small", columns = new object[] {
+                new { type = "ColumnSet", spacing = "Large", columns = new object[] {
                     Button("Open YouTube Music", "open", true),
                     Button("Previous track", "previous", state.CanPrevious),
                     Button(state.Playing ? "Pause" : "Play", state.Playing ? "pause" : "play", state.CanToggle),

@@ -28,21 +28,9 @@ AI Usage Widget의 C# / Windows App SDK 구조를 바탕으로 만든 Windows 11
 
 Windows 11 22H2 이상 / x64 / .NET 10 SDK / Windows SDK(makeappx, makepri) / Windows Web Experience Pack이 필요합니다. 최초 빌드에는 NuGet 연결이 필요합니다.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/Build.ps1
-powershell -ExecutionPolicy Bypass -File scripts/Install-Dev.ps1
-```
 
-개발 등록에는 Windows 개발자 모드가 필요합니다. 스크립트는 시스템 정책이나 인증서를 변경하지 않습니다. 결과물은 `artifacts/MusicWidget.msix`와 `artifacts/package/`입니다. MSIX는 서명 전 상태이며 개발 PC에서는 `Install-Dev.ps1`로 압축 해제된 패키지를 등록합니다. 등록 후 `artifacts/package`를 이동하거나 삭제하지 마세요. 다른 PC 배포에는 신뢰할 수 있는 서명 또는 Store 배포가 필요합니다.
+개발 등록에는 Windows 개발자 모드가 필요합니다. 스크립트는 시스템 정책이나 인증서를 변경하지 않습니다. 결과물은 `artifacts/MusicWidget.msix`와 `artifacts/package/`입니다. 등록 후 `artifacts/package`를 이동하거나 삭제하지 마세요. 다른 PC 배포에는 신뢰할 수 있는 서명 또는 Store 배포가 필요합니다.
 
-```powershell
-# 실제 미디어 연결 화면
-powershell -ExecutionPolicy Bypass -File scripts/Preview.ps1
-# 샘플 화면: 실제 음악은 제어하지 않음
-powershell -ExecutionPolicy Bypass -File scripts/Preview.ps1 -Sample
-# 개발 등록 제거
-powershell -ExecutionPolicy Bypass -File scripts/Uninstall-Dev.ps1
-```
 
 직접 실행: `artifacts/package/Desktop/MusicWidget.Desktop.exe`.
 
@@ -59,12 +47,6 @@ Windows `GlobalSystemMediaTransportControlsSessionManager`에서 앨범 이미�
 위젯 본문은 Windows 호스트가 Adaptive Card로 렌더링합니다. 제어 버튼은 기본 ActionSet 대신 투명한 아이콘 이미지의 `selectAction`을 사용하며, 40×36px 클릭 영역과 기능별 접근성 이름을 제공합니다. 위젯의 [`$host.hostTheme`](https://github.com/microsoft/WindowsAppSDK/discussions/3300) 값에 따라 다크 테마에서는 흰색, 라이트 테마에서는 검은색 아이콘을 표시합니다. 사용할 수 없는 버튼은 흐리게 표시하고 입력을 비활성화합니다. 데스크톱 미리보기에도 같은 벡터 아이콘을 사용합니다. 크기와 Customize 메뉴의 지원 여부는 패키지 매니페스트에 선언되어 있습니다. Windows가 제공하는 기본 `…` 메뉴는 유지됩니다.
 
 ## 검증
-
-```powershell
-dotnet run --project tests/MusicWidget.Checks
-# Windows 미디어 세션을 읽기만 하며 재생은 변경하지 않습니다.
-dotnet run --project tests/MusicWidget.Checks -- --live
-```
 
 세션 선택, 미연결/미지원 버튼, 재생 상태별 명령, 메타데이터 이스케이프, 고정 크기 및 사용자 지정 메뉴 비활성 선언 등을 검사합니다. 빌드 시 라이트·다크 샘플 이미지를 `artifacts/package/Assets/preview-*.png`로 렌더링합니다. 샘플 곡은 가상 데이터입니다.
 

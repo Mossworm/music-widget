@@ -39,6 +39,7 @@ JsonElement[] Actions(JsonDocument doc) => doc.RootElement.GetProperty("body")[3
 Check(empty.RootElement.GetProperty("body")[3].GetProperty("columns").EnumerateArray().All(c => c.GetProperty("width").GetString() == "stretch"
     && c.GetProperty("items")[0].GetProperty("items").EnumerateArray().All(i => i.GetProperty("type").GetString() == "Image"
         && i.GetProperty("width").GetString() == "40px" && i.GetProperty("height").GetString() == "36px")), "Five background-free icon controls retain equal columns and click targets");
+Check(empty.RootElement.GetProperty("body")[3].GetProperty("spacing").GetString() == "Large", "Transport controls sit below the track metadata");
 Check(Actions(empty).Select(a => a.GetProperty("verb").GetString()).SequenceEqual(["open", "previous", "play", "next", "like"]), "Open and like flank the three transport controls");
 Check(Actions(empty)[0].GetProperty("isEnabled").GetBoolean(), "Open is available without a media session");
 Check(Actions(empty).Skip(1).All(a => !a.GetProperty("isEnabled").GetBoolean()), "Disconnected playback and like controls disabled");
