@@ -9,7 +9,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $repo = $PSScriptRoot
 $artifacts = Join-Path $repo 'artifacts'
-$build = Join-Path $artifacts ('build-' + [guid]::NewGuid().ToString('N'))
+$build = Join-Path $artifacts '.build'
+$publish = Join-Path $artifacts 'publish'
 $stage = Join-Path $build 'package'
 $package = Join-Path $artifacts 'package'
 $backup = Join-Path $build 'previous-package'
@@ -43,13 +44,6 @@ function Stop-WidgetProcesses {
 Push-Location $repo
 try {
     $dotnet = (Get-Command dotnet -ErrorAction Stop).Source
-    $sdkRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
-    $sdk = Get-ChildItem -LiteralPath $sdkRoot -Directory |
-        Where-Object { $_.Name -match '^10\.0\.\d+\.0$' } |
-        Sort-Object { [version]$_.Name } -Descending |
-        Where-Object { (Test-Path (Join-Path $_.FullName 'x64\makeappx.exe')) -and (Test-Path (Join-Path $_.FullName 'x64\makepri.exe')) } |
-        Select-Object -First 1
-    if (!$sdk) { throw 'Install the Windows SDK with makeappx.exe and makepri.exe (x64).' }
     if (!$BuildOnly) {
         $developerMode = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -ErrorAction SilentlyContinue
         if (!$developerMode -or !$developerMode.PSObject.Properties['AllowDevelopmentWithoutDevLicense'] -or $developerMode.AllowDevelopmentWithoutDevLicense -ne 1) {
@@ -61,6 +55,9 @@ try {
         }
     }
 
+    Assert-ArtifactPath $build
+    Assert-ArtifactPath $publish
+    if (Test-Path -LiteralPath $build) { Remove-Item -LiteralPath $build -Recurse -Force }
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
     Write-Host 'Building and checking YT Music Controller...'
     Invoke-Checked $dotnet @('build', 'MusicWidget.slnx', '-c', $Configuration, '--nologo')
@@ -80,12 +77,11 @@ try {
     foreach ($name in @('preview-light.png', 'preview-dark.png')) {
         if (!(Test-Path (Join-Path $stage "Assets\$name"))) { throw "Missing preview: $name" }
     }
-    Write-Host "Packaging (logs: $build)..."
-    Invoke-Checked (Join-Path $sdk.FullName 'x64\makepri.exe') @('new', '/pr', $stage, '/cf', (Join-Path $repo 'packaging\priconfig.xml'), '/of', (Join-Path $stage 'resources.pri'), '/o') > (Join-Path $build 'resources.log')
-    $msix = Join-Path $build 'MusicWidget.msix'
-    Invoke-Checked (Join-Path $sdk.FullName 'x64\makeappx.exe') @('pack', '/d', $stage, '/p', $msix, '/o') > (Join-Path $build 'packaging.log')
+    if (Test-Path -LiteralPath $publish) { Remove-Item -LiteralPath $publish -Recurse -Force }
+    New-Item -ItemType Directory -Path $publish -Force | Out-Null
+    Copy-Item -Path (Join-Path $stage '*') -Destination $publish -Recurse -Force
     if ($BuildOnly) {
-        Write-Host "Build succeeded: $msix"
+        Write-Host "Build succeeded: $publish"
         return
     }
 
@@ -127,9 +123,10 @@ try {
         }
         throw $failure
     }
-    Copy-Item -LiteralPath $msix -Destination (Join-Path $artifacts 'MusicWidget.msix') -Force
     Write-Host "Installed successfully: $($registered.PackageFullName)"
     Write-Host 'Open Win + W. If needed, add the YT Music Controller widget.'
-    Write-Host "Previous files (if any): $backup"
 }
-finally { Pop-Location }
+finally {
+    Pop-Location
+    if (Test-Path -LiteralPath $build) { Remove-Item -LiteralPath $build -Recurse -Force }
+}
