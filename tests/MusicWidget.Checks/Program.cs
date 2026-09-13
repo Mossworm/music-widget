@@ -3,6 +3,10 @@ using System.Xml.Linq;
 using MusicWidget;
 using Windows.Media.Control;
 
+if (args.Contains("--verify-minimized-like")) {
+    await MinimizedLikeChecks.RunAsync();
+    return;
+}
 if (args.Length == 2 && args[0] == "--identity") {
     Console.WriteLine(YouTubeIdentity.Matches(args[1], "") ? "YouTube Music identity confirmed" : "Unresolved identity");
     return;

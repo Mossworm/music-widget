@@ -61,6 +61,14 @@ internal static class YouTubeApp
 
     internal static bool Focus(nint window, CancellationToken token = default)
     {
+        using var gate = BackgroundWindow.Gate(window);
+        if (!BackgroundWindow.Enter(gate, 1500)) return false;
+        try { return FocusCore(window, token); }
+        finally { gate.ReleaseMutex(); }
+    }
+
+    static bool FocusCore(nint window, CancellationToken token)
+    {
         token.ThrowIfCancellationRequested();
         if (!IsWindow(window)) return false;
         // ShowWindowAsync only queues restoration: focusing immediately can race
@@ -140,6 +148,8 @@ internal static class YouTubeApp
     {
         (AutomationElement, AutomationElement)? match = null;
         foreach (var window in Windows(source)) {
+            token.ThrowIfCancellationRequested();
+            if (!BackgroundWindow.Refresh(window, token)) return null;
             token.ThrowIfCancellationRequested();
             var root = AutomationElement.FromHandle(window);
             var bars = root.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ToolBar));
