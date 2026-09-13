@@ -40,9 +40,19 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build-install.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Users\jwide\Mossworm\Workspace\music-widget\build-install.ps1"
 ```
 
-스크립트는 Release 빌드, 27개 검사, 자체 포함 x64 게시, 미리보기·리소스 생성을 완료한 뒤 `artifacts/publish/`를 최신 빌드 파일로 교체하고 현재 사용자의 개발 등록을 갱신합니다. MSIX는 생성하지 않습니다. 설치 교체 중 기존 실행 파일은 임시 폴더에 보관하고, 등록에 실패하면 복원한 뒤 임시 파일을 삭제합니다. 실행 중인 이 프로젝트의 위젯 제공자와 데스크톱 미리보기는 교체 직전에 종료합니다. 완료 후 **Win + W**로 열고, 카드가 없다면 **위젯 추가 → YT Music Controller → 고정**을 선택하세요.
+스크립트는 Release 빌드, 31개 검사, 자체 포함 x64 게시, 미리보기·리소스 생성을 완료한 뒤 `artifacts/publish/`를 최신 빌드 파일로 교체하고 현재 사용자의 개발 등록을 갱신합니다. 기본 실행에서는 MSIX를 생성하지 않습니다. 설치 교체 중 기존 실행 파일은 임시 폴더에 보관하고, 등록에 실패하면 복원한 뒤 임시 파일을 삭제합니다. 실행 중인 이 프로젝트의 위젯 제공자와 데스크톱 미리보기는 교체 직전에 종료합니다. 완료 후 **Win + W**로 열고, 카드가 없다면 **위젯 추가 → YT Music Controller → 고정**을 선택하세요.
 
 설치 없이 빌드만 하려면 `-BuildOnly`를 붙입니다. 이 경우 결과물은 `artifacts/publish/`에 생성되며 설치된 파일은 교체하지 않습니다. 다음 성공한 빌드가 이전 내용을 덮어쓰므로 가장 최근 빌드만 남습니다.
+
+**Microsoft Store 제출용 MSIX**는 다음 명령으로 생성합니다. 로컬 개발 등록은 변경하지 않습니다.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build-install.ps1 -Msix
+```
+
+결과는 `artifacts/msix/<Identity.Name>_<Version>_x64.msix`에 저장됩니다. 현재 매니페스트 기준 파일명은 `Mossworm.YTMusicController_1.0.0.0_x64.msix`입니다. 최신 소스를 빌드·검사하고 `resources.pri`를 생성한 뒤 MakeAppx의 기본 패키지 검증을 거쳐 압축합니다. 같은 이름의 파일은 성공한 패키지로 교체합니다.
+
+제출 전에 `packaging/AppxManifest.xml`의 `Identity.Name`, `Identity.Publisher`, `PublisherDisplayName`이 Partner Center의 제품 ID 정보와 일치하는지 확인하세요. MSIX는 서명 없이 생성하며 Store가 인증 후 서명합니다. MakeAppx 검증은 Windows App Certification Kit 검사나 Store 심사를 대신하지 않습니다. [Microsoft Store 패키지 요구 사항](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/app-package-requirements).
 
 패키지 루트에도 `Microsoft.Windows.Widgets.winmd`를 배치하여 위젯 제공자의 WinRT 메타데이터 검색을 지원합니다. 등록 후 실제 COM 제공자를 활성화해 확인하며, 활성화에 실패해도 기존 파일과 등록으로 복원합니다.
 

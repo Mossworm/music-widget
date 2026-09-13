@@ -2,6 +2,7 @@
 [CmdletBinding()]
 param(
     [switch]$BuildOnly,
+    [switch]$Msix,
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release'
 )
 
@@ -14,6 +15,9 @@ $publish = Join-Path $artifacts 'publish'
 $stage = Join-Path $build 'package'
 $package = Join-Path $artifacts 'package'
 $backup = Join-Path $build 'previous-package'
+$install = !$BuildOnly -and !$Msix
+$sourceManifest = [xml](Get-Content -LiteralPath (Join-Path $repo 'packaging\AppxManifest.xml') -Raw)
+$packageName = $sourceManifest.Package.Identity.Name
 
 function Invoke-Checked([string]$Command, [string[]]$Arguments) {
     & $Command @Arguments
@@ -44,12 +48,21 @@ function Stop-WidgetProcesses {
 Push-Location $repo
 try {
     $dotnet = (Get-Command dotnet -ErrorAction Stop).Source
-    if (!$BuildOnly) {
+    $sdkRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
+    $sdk = Get-ChildItem -LiteralPath $sdkRoot -Directory |
+        Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
+        Sort-Object { [version]$_.Name } -Descending |
+        Where-Object { (Test-Path (Join-Path $_.FullName 'x64\makepri.exe')) -and (Test-Path (Join-Path $_.FullName 'x64\makeappx.exe')) } |
+        Select-Object -First 1
+    if (!$sdk) { throw 'Install the Windows SDK with makepri.exe and makeappx.exe.' }
+    $makepri = Join-Path $sdk.FullName 'x64\makepri.exe'
+    $makeappx = Join-Path $sdk.FullName 'x64\makeappx.exe'
+    if ($install) {
         $developerMode = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -ErrorAction SilentlyContinue
         if (!$developerMode -or !$developerMode.PSObject.Properties['AllowDevelopmentWithoutDevLicense'] -or $developerMode.AllowDevelopmentWithoutDevLicense -ne 1) {
             throw 'Enable Windows Developer Mode in Settings, then run this script again.'
         }
-        $installed = Get-AppxPackage -Name 'Mossworm.MusicWidget'
+        $installed = Get-AppxPackage -Name $packageName
         if ($installed -and !$installed.IsDevelopmentMode) {
             throw 'A signed installation already exists. This script only replaces development registrations.'
         }
@@ -77,10 +90,27 @@ try {
     foreach ($name in @('preview-light.png', 'preview-dark.png')) {
         if (!(Test-Path (Join-Path $stage "Assets\$name"))) { throw "Missing preview: $name" }
     }
+    # Compile ms-resource strings for both development registration and MSIX.
+    Invoke-Checked $makepri @('new', '/pr', $stage, '/cf', (Join-Path $repo 'packaging\priconfig.xml'), '/of', (Join-Path $stage 'resources.pri'), '/o')
+    if (!(Test-Path (Join-Path $stage 'resources.pri'))) { throw 'Missing resources.pri.' }
+    if ($Msix) {
+        $manifest = [xml](Get-Content -LiteralPath (Join-Path $stage 'AppxManifest.xml') -Raw)
+        $identity = $manifest.Package.Identity
+        $msixDirectory = Join-Path $artifacts 'msix'
+        $msixName = '{0}_{1}_{2}.msix' -f $identity.Name, $identity.Version, $identity.ProcessorArchitecture
+        $stagedMsix = Join-Path $build $msixName
+        # Keep MakeAppx semantic validation enabled. Store signs after certification.
+        Invoke-Checked $makeappx @('pack', '/d', $stage, '/p', $stagedMsix, '/o')
+        New-Item -ItemType Directory -Path $msixDirectory -Force | Out-Null
+        $msixPath = Join-Path $msixDirectory $msixName
+        Copy-Item -LiteralPath $stagedMsix -Destination $msixPath -Force
+        Write-Host "Unsigned Store package: $msixPath"
+        Write-Host "Identity: $($identity.Name), $($identity.Publisher). Match these to Partner Center before upload."
+    }
     if (Test-Path -LiteralPath $publish) { Remove-Item -LiteralPath $publish -Recurse -Force }
     New-Item -ItemType Directory -Path $publish -Force | Out-Null
     Copy-Item -Path (Join-Path $stage '*') -Destination $publish -Recurse -Force
-    if ($BuildOnly) {
+    if (!$install) {
         Write-Host "Build succeeded: $publish"
         return
     }
@@ -95,7 +125,7 @@ try {
     try {
         Move-Item -LiteralPath $stage -Destination $package
         Add-AppxPackage -Register (Join-Path $package 'AppxManifest.xml') -ForceApplicationShutdown
-        $registered = Get-AppxPackage -Name 'Mossworm.MusicWidget'
+        $registered = Get-AppxPackage -Name $packageName
         if (!$registered -or $registered.Status -ne 'Ok' -or $registered.InstallLocation -ne $package) {
             throw 'Package registration verification failed.'
         }
