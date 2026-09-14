@@ -15,8 +15,8 @@ if (args.Length == 2 && args[0] == "--identity") {
     Console.WriteLine(YouTubeIdentity.Matches(args[1], "") ? "YouTube Music identity confirmed" : "Unresolved identity");
     return;
 }
-if (args.Length == 4 && args[0] == "--like-status") {
-    Console.WriteLine(JsonSerializer.Serialize(await YouTubeApp.ReadLikeAsync(args[1], args[2], args[3])));
+if (args.Length == 3 && args[0] == "--like-status") {
+    Console.WriteLine(JsonSerializer.Serialize(await YouTubeApp.ReadLikeAsync(args[1], args[2])));
     return;
 }
 if (args.Contains("--open")) {
@@ -68,8 +68,9 @@ Check(YouTubeApp.IsLikeLabel("좋아요") && YouTubeApp.IsLikeLabel("좋아요 �
 Check(!YouTubeApp.IsLikeLabel("싫어요") && !YouTubeApp.IsLikeLabel("Dislike") && !YouTubeApp.IsLikeLabel("Liked Music"), "Dislike and library controls never matched");
 Check(YouTubeApp.NormalizeTrackText("Song (feat. Artist) - Remastered") == "songfeatartistremastered", "Track text normalization removes punctuation and spacing");
 Check(YouTubeApp.NormalizeTrackText("Café") == YouTubeApp.NormalizeTrackText("Cafe\u0301"), "Track text normalization handles Unicode composition");
-Check(YouTubeApp.MatchesTrackTitle("이별노래 (feat. Hash Swan)", "이별노래"), "Feature suffix in accessibility title is accepted");
-Check(!YouTubeApp.MatchesTrackTitle("이별노래 (feat. Hash Swan)", "이별노래 (feat. Another Artist)"), "Different feature artists are not conflated");
+Check(YouTubeApp.SameTrack("花も騒めく - The flowers are also noisy", "花も騒めく  -  The flowers are also noisy"), "Accessibility title compares against itself across spacing");
+Check(!YouTubeApp.SameTrack("花も騒めく - The flowers are also noisy", "The flowers are also noisy")
+    && !YouTubeApp.SameTrack(null, "이별노래"), "A different or missing title never passes as the current track");
 Check(YouTubeApp.IsMusicWindow("Song - YouTube Music", "chrome", "Chrome._crx_test") && YouTubeApp.IsMusicWindow("YouTube Music", "msedge", null), "PWA windows recognized before and during playback");
 Check(YouTubeApp.IsMusicWindow("YouTube Music - 두 사람 | YouTube Music", "chrome", "Chrome._crx_test")
     && YouTubeApp.IsMusicWindow("Song | YouTube Music", "msedge", "Microsoft.MicrosoftEdge_test"), "Playing PWA pipe-separated titles keep like available");

@@ -6,7 +6,7 @@ using System.Windows.Automation;
 
 namespace MusicWidget;
 
-internal readonly record struct LikeStatus(bool Available, bool Liked);
+internal readonly record struct LikeStatus(bool Available, bool Liked, string? Title = null);
 
 internal static class YouTubeApp
 {
@@ -141,41 +141,26 @@ internal static class YouTubeApp
         .ToLowerInvariant()
         .Where(char.IsLetterOrDigit));
 
-    internal static bool MatchesTrackTitle(string actual, string expected)
-    {
-        var normalizedActual = NormalizeTrackText(actual);
-        var normalizedExpected = NormalizeTrackText(expected);
-        if (normalizedActual == normalizedExpected) return true;
-        var actualBase = FeatureBase(actual);
-        var expectedBase = FeatureBase(expected);
-        return actualBase.Length > 0 && actualBase == expectedBase
-            && (actualBase != normalizedActual) != (expectedBase != normalizedExpected);
-    }
+    // The widget displays the accessibility tree's own title, so titles only have to
+    // survive spacing and composition differences here. The media session sometimes
+    // reports a different, translated title for the same song; it is never compared.
+    internal static bool SameTrack(string? actual, string? expected) =>
+        actual is not null && expected is not null && NormalizeTrackText(actual) == NormalizeTrackText(expected);
 
-    static string FeatureBase(string value)
-    {
-        var normalized = value.Normalize(NormalizationForm.FormKC);
-        foreach (var marker in new[] { "feat", "ft", "with" }) {
-            var index = normalized.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-            if (index > 0 && !char.IsLetterOrDigit(normalized[index - 1]))
-                return NormalizeTrackText(normalized[..index]);
-        }
-        return NormalizeTrackText(value);
-    }
-
-    static bool MatchesTrack(AutomationElement bar, string title, string artist)
+    // The player bar is identified by its artist byline alone, and its title read back
+    // for display, so every later lookup compares the tree's title against itself.
+    static string? TrackTitle(AutomationElement bar, string artist)
     {
         var normalizedArtist = NormalizeTrackText(artist);
-        var children = bar.FindAll(TreeScope.Descendants, Condition.TrueCondition).Cast<AutomationElement>();
-        return children.Any(e => HasClass(e, "ytmusic-player-bar") && HasClass(e, "title")
-                && MatchesTrackTitle(e.Current.Name, title))
-            && children.Any(e => HasClass(e, "ytmusic-player-bar") && HasClass(e, "byline")
-                && NormalizeTrackText(e.Current.Name).Contains(normalizedArtist, StringComparison.Ordinal));
+        var children = bar.FindAll(TreeScope.Descendants, Condition.TrueCondition).Cast<AutomationElement>().ToList();
+        if (!children.Any(e => HasClass(e, "ytmusic-player-bar") && HasClass(e, "byline")
+                && NormalizeTrackText(e.Current.Name).Contains(normalizedArtist, StringComparison.Ordinal))) return null;
+        return children.FirstOrDefault(e => HasClass(e, "ytmusic-player-bar") && HasClass(e, "title"))?.Current.Name;
     }
 
-    static (AutomationElement Bar, AutomationElement Button)? FindLike(string source, string title, string artist, CancellationToken token)
+    static (AutomationElement Bar, AutomationElement Button, string Title)? FindLike(string source, string artist, CancellationToken token)
     {
-        (AutomationElement, AutomationElement)? match = null;
+        (AutomationElement, AutomationElement, string)? match = null;
         foreach (var window in Windows(source)) {
             token.ThrowIfCancellationRequested();
             if (!BackgroundWindow.Refresh(window, token)) return null;
@@ -183,33 +168,33 @@ internal static class YouTubeApp
             var root = AutomationElement.FromHandle(window);
             var bars = root.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ToolBar));
             foreach (AutomationElement bar in bars) {
-                if (!MatchesTrack(bar, title, artist)) continue;
+                if (TrackTitle(bar, artist) is not { } title) continue;
                 var buttons = bar.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button));
                 foreach (AutomationElement button in buttons) {
                     if (!IsLikeLabel(button.Current.Name) || !button.Current.IsEnabled
                         || !button.TryGetCurrentPattern(TogglePattern.Pattern, out _)) continue;
                     if (match is not null) return null; // Multiple matching players are ambiguous.
-                    match = (bar, button);
+                    match = (bar, button, title);
                 }
             }
         }
         return match;
     }
 
-    public static Task<LikeStatus> ReadLikeAsync(string source, string title, string artist) => RunAsync(token => {
-        var match = FindLike(source, title, artist, token);
+    public static Task<LikeStatus> ReadLikeAsync(string source, string artist) => RunAsync(token => {
+        var match = FindLike(source, artist, token);
         if (match is null) return default;
         var toggle = (TogglePattern)match.Value.Button.GetCurrentPattern(TogglePattern.Pattern);
-        return new LikeStatus(true, toggle.Current.ToggleState == ToggleState.On);
+        return new LikeStatus(true, toggle.Current.ToggleState == ToggleState.On, match.Value.Title);
     }, default(LikeStatus));
 
-    public static Task<bool> SetLikedAsync(string source, string title, string artist, bool liked) => RunAsync(token => {
-        var match = FindLike(source, title, artist, token);
-        if (match is null) return false;
-        var (bar, button) = match.Value;
+    public static Task<bool> SetLikedAsync(string source, string artist, string title, bool liked) => RunAsync(token => {
+        var match = FindLike(source, artist, token);
+        if (match is null || !SameTrack(match.Value.Title, title)) return false;
+        var (bar, button, _) = match.Value;
         var toggle = (TogglePattern)button.GetCurrentPattern(TogglePattern.Pattern);
         if ((toggle.Current.ToggleState == ToggleState.On) == liked) return true;
-        if (!MatchesTrack(bar, title, artist)) return false;
+        if (!SameTrack(TrackTitle(bar, artist), title)) return false;
         token.ThrowIfCancellationRequested();
         toggle.Toggle();
         return true;

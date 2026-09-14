@@ -14,7 +14,7 @@ public sealed class MediaController
     GlobalSystemMediaTransportControlsSession? selected;
     string? artworkKey;
     string? artwork;
-    string mediaTitle = "", mediaArtist = "";
+    string trackTitle = "", mediaArtist = "";
     public Playback State { get; private set; } = Playback.Empty();
 
     public async Task<Playback> RefreshAsync()
@@ -44,16 +44,19 @@ public sealed class MediaController
             selected = candidate.Session;
             var info = selected.GetPlaybackInfo();
             var mediaProps = candidate.Media;
-            mediaTitle = mediaProps.Title; mediaArtist = mediaProps.Artist;
+            mediaArtist = mediaProps.Artist;
             var key = $"{selected.SourceAppUserModelId}\n{mediaProps.Title}\n{mediaProps.Artist}\n{mediaProps.AlbumTitle}";
             if (key != artworkKey || artwork is null) {
                 artwork = await ReadArtworkAsync(mediaProps.Thumbnail);
                 artworkKey = key;
             }
             var controls = info.Controls;
-            var like = await YouTubeApp.ReadLikeAsync(selected.SourceAppUserModelId, mediaProps.Title, mediaProps.Artist);
+            var like = await YouTubeApp.ReadLikeAsync(selected.SourceAppUserModelId, mediaProps.Artist);
+            // Prefer the app's own title: the media session can report a translated
+            // variant, and showing the tree's title keeps the Like lookup in sync.
+            trackTitle = string.IsNullOrWhiteSpace(like.Title) ? mediaProps.Title : like.Title!;
             return State = new(
-                string.IsNullOrWhiteSpace(mediaProps.Title) ? "Unknown title" : mediaProps.Title,
+                string.IsNullOrWhiteSpace(trackTitle) ? "Unknown title" : trackTitle,
                 string.IsNullOrWhiteSpace(mediaProps.Artist) ? "YouTube Music" : mediaProps.Artist,
                 artwork, true, candidate.Playing, controls.IsPreviousEnabled,
                 (candidate.Playing ? controls.IsPauseEnabled : controls.IsPlayEnabled) || controls.IsPlayPauseToggleEnabled,
@@ -80,7 +83,7 @@ public sealed class MediaController
                 "next" when State.CanNext => await selected.TrySkipNextAsync(),
                 "pause" when State.CanToggle && State.Playing => controls.IsPauseEnabled ? await selected.TryPauseAsync() : await selected.TryTogglePlayPauseAsync(),
                 "play" when State.CanToggle && !State.Playing => controls.IsPlayEnabled ? await selected.TryPlayAsync() : await selected.TryTogglePlayPauseAsync(),
-                "like" or "unlike" => await YouTubeApp.SetLikedAsync(selected.SourceAppUserModelId, mediaTitle, mediaArtist, verb == "like"),
+                "like" or "unlike" => await YouTubeApp.SetLikedAsync(selected.SourceAppUserModelId, mediaArtist, trackTitle, verb == "like"),
                 _ => null
             };
             await ReadAsync();

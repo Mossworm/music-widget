@@ -56,11 +56,11 @@ internal static class MinimizedLikeChecks
             CheckWindow();
             var same = await controller.ExecuteAsync(before.Liked ? "unlike" : "like", before.SessionId);
             Check(same.Liked == changed.Liked, "Repeated desired-state request does not toggle back");
-            Check(!await YouTubeApp.SetLikedAsync(session.SourceAppUserModelId, "not-the-current-track", media.Artist, before.Liked),
+            Check(!await YouTubeApp.SetLikedAsync(session.SourceAppUserModelId, media.Artist, "not-the-current-track", before.Liked),
                 "Mismatched track cannot change the rating");
         }
         finally {
-            Check(await YouTubeApp.SetLikedAsync(session.SourceAppUserModelId, media.Title, media.Artist, before.Liked), "Original rating restored");
+            Check(await YouTubeApp.SetLikedAsync(session.SourceAppUserModelId, media.Artist, before.Title, before.Liked), "Original rating restored");
         }
         var restored = await controller.RefreshAsync();
         Check(restored.CanLike && restored.Liked == before.Liked, "Icon state reflects the restored real rating");
