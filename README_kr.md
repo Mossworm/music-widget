@@ -4,6 +4,10 @@
 
 Chrome 또는 Edge에 설치한 **YouTube Music PWA**를 Windows 11 위젯 보드(**Win + W**)에서 제어하는 위젯입니다.
 
+| 라이트 모드 | 다크 모드 |
+| :---: | :---: |
+| <img src="assets/light.png" alt="라이트 모드의 YT Music Controller 위젯" width="313"> | <img src="assets/dark.png" alt="다크 모드의 YT Music Controller 위젯" width="310"> |
+
 - 앨범 이미지, 노래 제목, 가수 이름 표시
 - 앱 열기 / 이전 곡 / 재생·일시정지 / 다음 곡 / 좋아요·취소 버튼
 - Windows 밝은 테마, 어두운 테마, 고대비 테마 대응
@@ -68,7 +72,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build-install.ps1
 
 | 버튼 | 동작 |
 | --- | --- |
-| 앱 아이콘 | YouTube Music을 열거나, 이미 실행 중이면 앞으로 가져옵니다 |
+| ↗ | YouTube Music을 열거나, 이미 실행 중이면 앞으로 가져옵니다 |
 | ⏮ / ⏯ / ⏭ | 이전 곡, 재생·일시정지, 다음 곡 |
 | ♥ | 현재 곡에 좋아요를 설정하거나 취소합니다 |
 

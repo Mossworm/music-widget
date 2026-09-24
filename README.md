@@ -4,6 +4,10 @@
 
 A Windows 11 widget that controls the **YouTube Music PWA** (the app installed from Chrome or Edge) from the Widgets board (**Win + W**).
 
+| Light mode | Dark mode |
+| :---: | :---: |
+| <img src="assets/light.png" alt="YT Music Controller widget in light mode" width="313"> | <img src="assets/dark.png" alt="YT Music Controller widget in dark mode" width="310"> |
+
 - Album art, song title and artist
 - Open app / previous / play·pause / next / like·unlike buttons
 - Follows the Windows light, dark and high-contrast themes
@@ -68,7 +72,7 @@ The script does not change system policies or install certificates. `-ExecutionP
 
 | Button | Action |
 | --- | --- |
-| App icon | Opens YouTube Music, or brings it to the front if it is already running |
+| ↗ | Opens YouTube Music, or brings it to the front if it is already running |
 | ⏮ / ⏯ / ⏭ | Previous, play·pause, next |
 | ♥ | Likes the current song, or removes the like |
 
